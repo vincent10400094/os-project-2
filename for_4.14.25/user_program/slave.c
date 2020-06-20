@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -11,12 +12,14 @@
 
 #define PAGE_SIZE 4096
 #define BUF_SIZE 512
+#define MAXN 100
 int main (int argc, char* argv[])
 {
 	char buf[BUF_SIZE];
 	int i, dev_fd, file_fd;// the fd for the device and the fd for the input file
 	size_t ret, file_size = 0, data_size = -1;
-	char file_name[50];
+    int N, cnt = 1;
+	char file_name[MAXN][50];
 	char method[20];
 	char ip[20];
 	struct timeval start;
@@ -24,6 +27,11 @@ int main (int argc, char* argv[])
 	double trans_time; //calulate the time between the device is opened and it is closed
 	char *kernel_address, *file_address;
 
+    N = atoi(argv[cnt++]);
+    for(i = 0; i < N; i++)
+        strcpy(file_name[i], argv[cnt++]);
+    strcpy(method, argv[cnt++]);
+    strcpy(ip, argv[cnt++]);
 
 	if( (dev_fd = open("/dev/slave_device", O_RDWR)) < 0)//should be O_RDWR for PROT_WRITE when mmap()
 	{

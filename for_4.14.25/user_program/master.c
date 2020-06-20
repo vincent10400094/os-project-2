@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -11,6 +12,7 @@
 
 #define PAGE_SIZE 4096
 #define BUF_SIZE 512
+#define MAXN 100
 size_t get_filesize(const char* filename);//get the size of the input file
 
 
@@ -19,12 +21,17 @@ int main (int argc, char* argv[])
 	char buf[BUF_SIZE];
 	int i, dev_fd, file_fd;// the fd for the device and the fd for the input file
 	size_t ret, file_size, offset = 0, tmp;
-	char file_name[50], method[20];
+    int N, cnt = 1;
+	char file_name[MAXN][50], method[20];
 	char *kernel_address = NULL, *file_address = NULL;
 	struct timeval start;
 	struct timeval end;
 	double trans_time; //calulate the time between the device is opened and it is closed
-
+    
+    N = atoi(argv[cnt++]);
+    for(i = 0; i < N; i++)
+        strcpy(file_name[i], argv[cnt++]);
+    strcpy(method, argv[cnt++]);
 
 	if( (dev_fd = open("/dev/master_device", O_RDWR)) < 0)
 	{
