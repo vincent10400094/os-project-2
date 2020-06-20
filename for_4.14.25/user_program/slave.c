@@ -39,47 +39,51 @@ int main (int argc, char* argv[])
 		return 1;
 	}
 	gettimeofday(&start ,NULL);
-	if( (file_fd = open (file_name, O_RDWR | O_CREAT | O_TRUNC)) < 0)
-	{
-		perror("failed to open input file\n");
-		return 1;
-	}
+    for(i = 0; i < N; i++){
+        if( (file_fd = open (file_name[i], O_RDWR | O_CREAT | O_TRUNC)) < 0)
+        {
+            perror("failed to open input file\n");
+            return 1;
+        }
 
-	if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
-	{
-		perror("ioclt create slave socket error\n");
-		return 1;
-	}
+        if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
+        {
+            perror("ioclt create slave socket error\n");
+            return 1;
+        }
 
-    write(1, "ioctl success\n", 14);
+        write(1, "ioctl success\n", 14);
 
-	switch(method[0])
-	{
-		case 'f'://fcntl : read()/write()
-			do
-			{
-				ret = read(dev_fd, buf, sizeof(buf)); // read from the the device
-				write(file_fd, buf, ret); //write to the input file
-				file_size += ret;
-			}while(ret > 0);
-			break;
-	}
-
-
-
-	if(ioctl(dev_fd, 0x12345679) == -1)// end receiving data, close the connection
-	{
-		perror("ioclt client exits error\n");
-		return 1;
-	}
-	gettimeofday(&end, NULL);
-	trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
-	printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size / 8);
+        switch(method[0])
+        {
+            case 'f'://fcntl : read()/write()
+                do
+                {
+                    ret = read(dev_fd, buf, sizeof(buf)); // read from the the device
+                    write(file_fd, buf, ret); //write to the input file
+                    file_size += ret;
+                }while(ret > 0);
+                break;
+            case 'm':
+                break;
+        }
 
 
-	close(file_fd);
-	close(dev_fd);
-	return 0;
+
+        if(ioctl(dev_fd, 0x12345679) == -1)// end receiving data, close the connection
+        {
+            perror("ioclt client exits error\n");
+            return 1;
+        }
+    }
+    gettimeofday(&end, NULL);
+    trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
+    printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size / 8);
+
+
+    close(file_fd);
+    close(dev_fd);
+    return 0;
 }
 
 
