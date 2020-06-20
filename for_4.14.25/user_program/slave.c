@@ -64,7 +64,7 @@ int main (int argc, char* argv[])
                     file_size += ret;
                 }while(ret > 0);
                 break;
-            case 'm':
+            case 'm'://mmap
                 break;
         }
 
