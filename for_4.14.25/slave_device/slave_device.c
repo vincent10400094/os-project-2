@@ -32,9 +32,6 @@
 
 #define BUF_SIZE 512
 
-
-
-
 struct dentry  *file1;//debug file
 
 typedef struct socket * ksocket_t;
@@ -52,6 +49,7 @@ static void __exit slave_exit(void);
 
 int slave_close(struct inode *inode, struct file *filp);
 int slave_open(struct inode *inode, struct file *filp);
+int slave_mmap(struct file *filp, struct vm_area_struct *vma);
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param);
 ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
 
@@ -65,7 +63,8 @@ static struct file_operations slave_fops = {
 	.unlocked_ioctl = slave_ioctl,
 	.open = slave_open,
 	.read = receive_msg,
-	.release = slave_close
+	.release = slave_close,
+    .mmap = slave_mmap
 };
 
 //device info
@@ -111,7 +110,6 @@ int slave_open(struct inode *inode, struct file *filp)
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
 	long ret = -EINVAL;
-
 	int addr_len ;
 	unsigned int i;
 	size_t len, data_size = 0;
@@ -159,11 +157,13 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			tmp = inet_ntoa(&addr_srv.sin_addr);
 			printk("connected to : %s %d\n", tmp, ntohs(addr_srv.sin_port));
 			kfree(tmp);
-			printk("kfree(tmp)");
+			printk("kfree(tmp)\n");
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:
-
+            krecv(sockfd_cli, file->private_data, PAGE_SIZE, 0);
+            printk("receive message via mmap\n");
+            ret = 0;
 			break;
 
 		case slave_IOCTL_EXIT:
@@ -190,7 +190,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	return ret;
 }
 
-ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp )
+ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp)
 {
 //call when user is reading from this device
 	char msg[BUF_SIZE];
@@ -201,8 +201,11 @@ ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp )
 	return len;
 }
 
-
-
+int slave_mmap(struct file *filp, struct vm_area_struct *vma){
+    if(remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff, vma->vm_end - vma->vm_start, vma->vm_page_prot))
+        return -EAGAIN;
+    return 0;
+}
 
 module_init(slave_init);
 module_exit(slave_exit);
