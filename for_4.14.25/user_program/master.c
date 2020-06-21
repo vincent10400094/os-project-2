@@ -38,8 +38,16 @@ int main (int argc, char* argv[])
 		perror("failed to open /dev/master_device\n");
 		return 1;
 	}
+
 	gettimeofday(&start ,NULL);
     for(i = 0; i < N; i++){
+
+        if(ioctl(dev_fd, 0x12345677) == -1) //0x12345677 : create socket and accept the connection from the slave
+        {
+            perror("ioclt server create socket error\n");
+            return 1;
+        }
+
         if( (file_fd = open(file_name[i], O_RDWR)) < 0 )
         {
             perror("failed to open input file\n");
@@ -51,14 +59,6 @@ int main (int argc, char* argv[])
             perror("failed to get filesize\n");
             return 1;
         }
-
-
-        if(ioctl(dev_fd, 0x12345677) == -1) //0x12345677 : create socket and accept the connection from the slave
-        {
-            perror("ioclt server create socket error\n");
-            return 1;
-        }
-
 
         switch(method[0])
         {
@@ -72,6 +72,7 @@ int main (int argc, char* argv[])
                 break;
             case 'm': //mmap
 
+                break;
         }
 
         if(ioctl(dev_fd, 0x12345679) == -1) // end sending data, close the connection
@@ -79,12 +80,12 @@ int main (int argc, char* argv[])
             perror("ioclt server exits error\n");
             return 1;
         }
+	    close(file_fd);
     }
+
     gettimeofday(&end, NULL);
     trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
-
-	close(file_fd);
 	close(dev_fd);
 
 	return 0;
