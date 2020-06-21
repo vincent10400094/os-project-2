@@ -38,17 +38,19 @@ int main (int argc, char* argv[])
 		perror("failed to open /dev/slave_device\n");
 		return 1;
 	}
+
 	gettimeofday(&start ,NULL);
     for(i = 0; i < N; i++){
-        if( (file_fd = open (file_name[i], O_RDWR | O_CREAT | O_TRUNC)) < 0)
-        {
-            perror("failed to open input file\n");
-            return 1;
-        }
 
         if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
         {
-            perror("ioclt create slave socket error\n");
+            perror("ioctl create slave socket error\n");
+            return 1;
+        }
+
+        if( (file_fd = open (file_name[i], O_RDWR | O_CREAT | O_TRUNC)) < 0)
+        {
+            perror("failed to open input file\n");
             return 1;
         }
 
@@ -56,7 +58,7 @@ int main (int argc, char* argv[])
 
         switch(method[0])
         {
-            case 'f'://fcntl : read()/write()
+            case 'f':{ //fcntl : read()/write()
                 do
                 {
                     ret = read(dev_fd, buf, sizeof(buf)); // read from the the device
@@ -64,24 +66,39 @@ int main (int argc, char* argv[])
                     file_size += ret;
                 }while(ret > 0);
                 break;
-            case 'm'://mmap
+            }
+            case 'm':{ //mmap
+                char *input_mem;
+                char *output_mem;
+                do{
+                    ftruncate(file_fd, file_size + PAGE_SIZE);
+                    input_mem = mmap(NULL, PAGE_SIZE, PROT_READ, MAP_SHARED, dev_fd, 0);
+                    output_mem = mmap(NULL, PAGE_SIZE, PROT_WRITE, MAP_SHARED, file_fd, 0);
+                    fprintf(stderr, "output_mem = %p\n", output_mem);
+                    fprintf(stderr, "input_mem = %p\n", input_mem);
+                    if(ioctl(dev_fd, 0x12345678, 0) == -1){
+                        perror("ioctl mmap error\n");
+                        return 1;
+                    }
+                    memcpy(output_mem, input_mem, PAGE_SIZE);
+                    file_size += strlen(input_mem);
+                    munmap(input_mem, PAGE_SIZE);
+                    munmap(output_mem, PAGE_SIZE);
+                }while(strlen(input_mem) > 0);
                 break;
+           }
         }
-
-
-
+        ftruncate(file_fd, file_size);
         if(ioctl(dev_fd, 0x12345679) == -1)// end receiving data, close the connection
         {
-            perror("ioclt client exits error\n");
+            perror("ioctl client exits error\n");
             return 1;
         }
+        close(file_fd);
     }
     gettimeofday(&end, NULL);
     trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
-
-
-    close(file_fd);
     close(dev_fd);
     return 0;
 }
