@@ -168,7 +168,6 @@ static long master_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 			}
 			else
 				printk("aceept sockfd_cli = 0x%p\n", sockfd_cli);
-
 			tmp = inet_ntoa(&addr_cli.sin_addr);
 			printk("got connected from : %s %d\n", tmp, ntohs(addr_cli.sin_port));
 			kfree(tmp);
