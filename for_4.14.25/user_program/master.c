@@ -81,6 +81,8 @@ int main (int argc, char* argv[])
                     memcpy(output_mem, input_mem, send_len);
                     send_len = ioctl(dev_fd, 0x12345678, offset);
                     offset += send_len;
+                    munmap(input_mem, send_len);
+                    munmap(output_mem, send_len);
                 }
                 break;
             }
