@@ -73,7 +73,7 @@ static struct file_operations master_fops = {
 	.unlocked_ioctl = master_ioctl,
 	.open = master_open,
 	.write = send_msg,
-	.release = master_close
+	.release = master_close,
 	.mmap = master_mmap
 };
 
