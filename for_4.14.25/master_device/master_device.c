@@ -29,7 +29,7 @@
 #define master_IOCTL_MMAP 0x12345678
 #define master_IOCTL_EXIT 0x12345679
 #define BUF_SIZE 512
-#define SIZE 40960
+#define SIZE 4096
 
 typedef struct socket * ksocket_t;
 

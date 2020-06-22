@@ -32,7 +32,7 @@
 
 
 #define BUF_SIZE 512
-#define SIZE 40960
+#define SIZE 4096
 
 struct dentry  *file1;//debug file
 

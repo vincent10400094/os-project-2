@@ -66,7 +66,7 @@ int main (int argc, char* argv[])
                 do
                 {
                     ret = read(file_fd, buf, sizeof(buf)); // read from the input file
-                    fprintf(stderr, "read %d bytes\n", ret);
+                    //fprintf(stderr, "read %d bytes\n", ret);
                     write(dev_fd, buf, ret);//write to the the device
                 }while(ret > 0);
                 break;
@@ -76,7 +76,7 @@ int main (int argc, char* argv[])
                 char *output_mem;
                 while(offset < file_size){
                     send_len = ((file_size - offset) > PAGE_SIZE)? PAGE_SIZE : (file_size - offset);
-                    fprintf(stderr, "data len: %d\n", send_len);
+                    // fprintf(stderr, "data len: %d\n", send_len);
                     input_mem = mmap(NULL, send_len, PROT_READ, MAP_SHARED, file_fd, offset);
                     // fprintf(stderr, "to send is %s\n", input_mem);
                     output_mem = mmap(NULL, send_len, PROT_WRITE, MAP_SHARED, dev_fd, offset);

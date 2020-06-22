@@ -12,6 +12,7 @@
 
 #define PAGE_SIZE 4096
 #define BUF_SIZE 512
+#define INIT_VALUE 99999
 #define MAXN 100
 int main (int argc, char* argv[])
 {
@@ -72,22 +73,20 @@ int main (int argc, char* argv[])
                 int recv_len;
                 char *input_mem;
                 char *output_mem;
-                while((recv_len = ioctl(dev_fd, 0x12345678)) != 0){
+                while((recv_len = ioctl(dev_fd, 0x12345678, file_size)) != 0){
                     if(recv_len < 0){
                         perror("receive message error\n");
                         return 1;
                     }
-                    fprintf(stderr, "recv_len = %d\n", recv_len);
+                    //fprintf(stderr, "recv_len = %d\n", recv_len);
                     ftruncate(file_fd, file_size + recv_len);
                     input_mem = mmap(NULL, PAGE_SIZE, PROT_READ, MAP_SHARED, dev_fd, file_size);
-                    fprintf(stderr, "input ready\n");
                     output_mem = mmap(NULL, PAGE_SIZE, PROT_WRITE, MAP_SHARED, file_fd, file_size);
-                    fprintf(stderr, "output ready\n");
                     memcpy(output_mem, input_mem, recv_len);
                     munmap(input_mem, PAGE_SIZE);
                     munmap(output_mem, PAGE_SIZE);
                     file_size += recv_len;
-                    fprintf(stderr, "now file size = %d\n", file_size);
+                    //fprintf(stderr, "now file size = %d\n", file_size);
                 }
                 break;
            }
@@ -101,7 +100,7 @@ int main (int argc, char* argv[])
         close(dev_fd);
     }
     gettimeofday(&end, NULL);
-    trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
+    trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
     return 0;
 }
