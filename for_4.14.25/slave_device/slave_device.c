@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/debugfs.h>
 #include <linux/mm.h>
+#include <linux/proc_fs.h>
 #include <asm/page.h>
 
 
@@ -53,9 +54,18 @@ int slave_mmap(struct file *filp, struct vm_area_struct *vma);
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param);
 ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
 
+void vma_open(struct vm_area_struct *vma){ return; }
+void vma_close(struct vm_area_struct *vma){ return; }
+
 static mm_segment_t old_fs;
 static ksocket_t sockfd_cli;//socket to the master server
 static struct sockaddr_in addr_srv; //address of the master server
+
+//mmap
+static struct vm_operations_struct simple_remap_vm_ops = {
+    .open = vma_open,
+    .close = vma_close,
+};
 
 //file operations
 static struct file_operations slave_fops = {
@@ -100,11 +110,13 @@ static void __exit slave_exit(void)
 
 int slave_close(struct inode *inode, struct file *filp)
 {
+    kfree(filp->private_data);
 	return 0;
 }
 
 int slave_open(struct inode *inode, struct file *filp)
 {
+    filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	return 0;
 }
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
@@ -161,9 +173,9 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:
-            krecv(sockfd_cli, file->private_data, PAGE_SIZE, 0);
+            ret = krecv(sockfd_cli, file->private_data, PAGE_SIZE, 0);
             printk("receive message via mmap\n");
-            ret = 0;
+            printk("data: %s\n", file->private_data);
 			break;
 
 		case slave_IOCTL_EXIT:
@@ -202,8 +214,15 @@ ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp)
 }
 
 int slave_mmap(struct file *filp, struct vm_area_struct *vma){
-    if(remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff, vma->vm_end - vma->vm_start, vma->vm_page_prot))
+    unsigned long pfn_start = virt_to_phys(filp->private_data) >> PAGE_SHIFT;
+    unsigned long size = vma->vm_end - vma->vm_start;
+    if(remap_pfn_range(vma, vma->vm_start, pfn_start, size, vma->vm_page_prot)){
+        printk("remap_pfn_range failed at [0x%lx  0x%lx]\n", vma->vm_start, vma->vm_end);
         return -EAGAIN;
+    }
+    vma->vm_ops = &simple_remap_vm_ops;
+    vma->vm_flags |= VM_RESERVED;
+    vma_open(vma);
     return 0;
 }
 
