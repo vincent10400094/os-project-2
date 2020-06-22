@@ -78,8 +78,8 @@ int main (int argc, char* argv[])
                     send_len = ((file_size - offset) > PAGE_SIZE)? PAGE_SIZE : (file_size - offset);
                     fprintf(stderr, "data len: %d\n", send_len);
                     input_mem = mmap(NULL, send_len, PROT_READ, MAP_SHARED, file_fd, offset);
-                    fprintf(stderr, "to send is %s\n", input_mem);
-                    output_mem = mmap(NULL, send_len, PROT_WRITE, MAP_SHARED, dev_fd, 0);
+                    // fprintf(stderr, "to send is %s\n", input_mem);
+                    output_mem = mmap(NULL, send_len, PROT_WRITE, MAP_SHARED, dev_fd, offset);
                     memcpy(output_mem, input_mem, send_len);
                     send_len = ioctl(dev_fd, 0x12345678, send_len);
                     offset += send_len;
@@ -100,7 +100,7 @@ int main (int argc, char* argv[])
     }
 
     gettimeofday(&end, NULL);
-    trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
+    trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
 
 	return 0;
