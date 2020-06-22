@@ -190,7 +190,6 @@ static long master_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 			break;
 		case master_IOCTL_MMAP:{
             unsigned long send_len = ioctl_param;
-            printk("data: %s\n", file->private_data);
             ret = ksend(sockfd_cli, file->private_data, send_len, 0);
             break;
         }
