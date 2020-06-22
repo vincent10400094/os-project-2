@@ -185,6 +185,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 }
                 memcpy(file->private_data + len, buf, ret);
                 len += ret;
+                now_time++;
                 printk("data: %s\n", file->private_data);
             }
             ret = len;
