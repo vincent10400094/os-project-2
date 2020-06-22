@@ -56,15 +56,17 @@ ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
 
 void vma_open(struct vm_area_struct *vma){ return; }
 void vma_close(struct vm_area_struct *vma){ return; }
+static int vma_fault(struct vm_fault *vmf);
 
 static mm_segment_t old_fs;
 static ksocket_t sockfd_cli;//socket to the master server
 static struct sockaddr_in addr_srv; //address of the master server
 
 //mmap
-static struct vm_operations_struct simple_remap_vm_ops = {
+static const struct vm_operations_struct simple_remap_vm_ops = {
     .open = vma_open,
     .close = vma_close,
+    .fault = vma_fault
 };
 
 //file operations
@@ -124,8 +126,8 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	long ret = -EINVAL;
 	int addr_len ;
 	unsigned int i;
-	size_t len, data_size = 0;
-	char *tmp, ip[20], buf[BUF_SIZE];
+	size_t len = 0, data_size = 0, unused;
+	char *tmp, ip[20], buf[PAGE_SIZE * 2];
 	struct page *p_print;
 	unsigned char *px;
 
@@ -138,7 +140,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	set_fs(KERNEL_DS);
 
     printk("slave device ioctl");
-
+    
 	switch(ioctl_num){
 		case slave_IOCTL_CREATESOCK:// create socket and connect to master
             printk("slave device ioctl create socket");
@@ -173,9 +175,15 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:
-            ret = krecv(sockfd_cli, file->private_data, PAGE_SIZE, 0);
-            printk("receive message via mmap\n");
-            printk("data: %s\n", file->private_data);
+            while((ret = krecv(sockfd_cli, buf, sizeof(buf), 0)) != 0){
+                if(ret < 0){
+                    printk("recv error");
+                    return -1;
+                }
+                memcpy(file->private_data + len, buf, ret);
+                len += ret;
+                printk("data: %s\n", file->private_data);
+            }
 			break;
 
 		case slave_IOCTL_EXIT:
@@ -223,6 +231,12 @@ int slave_mmap(struct file *filp, struct vm_area_struct *vma){
     vma->vm_ops = &simple_remap_vm_ops;
     vma->vm_flags |= VM_RESERVED;
     vma_open(vma);
+    return 0;
+}
+
+static int vma_fault(struct vm_fault *vmf){
+    vmf->page = virt_to_page(vmf->vma->vm_private_data);
+    get_page(vmf->page);
     return 0;
 }
 

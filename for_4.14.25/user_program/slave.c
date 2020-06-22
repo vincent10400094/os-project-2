@@ -74,21 +74,19 @@ int main (int argc, char* argv[])
                 char *input_mem;
                 char *output_mem;
                 while((recv_len = ioctl(dev_fd, 0x12345678)) != 0){
-                    if(recv_len == -1){
-                        perror("ioctl mmap error\n");
+                    if(recv_len < 0){
+                        perror("receive message error\n");
                         return 1;
                     }
                     fprintf(stderr, "recv_len = %d\n", recv_len);
                     ftruncate(file_fd, file_size + recv_len);
                     input_mem = mmap(NULL, PAGE_SIZE, PROT_READ, MAP_SHARED, dev_fd, file_size);
+                    fprintf(stderr, "input ready\n");
                     output_mem = mmap(NULL, PAGE_SIZE, PROT_WRITE, MAP_SHARED, file_fd, file_size);
-                    if(memcpy(output_mem, input_mem, recv_len) == NULL)
-                        perror("memcpy error\n");
-                    fprintf(stderr, "fuck1\n");
+                    fprintf(stderr, "output ready\n");
+                    memcpy(output_mem, input_mem, recv_len);
                     munmap(input_mem, PAGE_SIZE);
-                    fprintf(stderr, "fuck2\n");
                     munmap(output_mem, PAGE_SIZE);
-                    fprintf(stderr, "fuck3\n");
                     file_size += recv_len;
                     fprintf(stderr, "now file size = %d\n", file_size);
                 }
