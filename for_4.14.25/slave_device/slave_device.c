@@ -179,6 +179,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
             int time_to_recv = SIZE / sizeof(buf);
             int now_time = 0;
             while(now_time < time_to_recv){
+                printk("%d/%d, now len = %d\n", now_time, time_to_recv, len);
                 ret = krecv(sockfd_cli, buf, sizeof(buf), 0);
                 if(ret < 0){
                     printk("recv error");
