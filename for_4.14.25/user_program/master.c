@@ -35,7 +35,7 @@ int main (int argc, char* argv[])
 
 	gettimeofday(&start ,NULL);
     for(i = 0; i < N; i++){
-
+        offset = 0;
         if( (dev_fd = open("/dev/master_device", O_RDWR)) < 0)
         {
             perror("failed to open /dev/master_device\n");
