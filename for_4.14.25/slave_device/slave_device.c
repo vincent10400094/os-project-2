@@ -178,12 +178,13 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 		case slave_IOCTL_MMAP:{
             int time_to_recv = SIZE / sizeof(buf);
             int now_time = 0;
+            len = 0;
             while(now_time < time_to_recv){
                 printk("%d/%d, now len = %d\n", now_time, time_to_recv, len);
                 ret = krecv(sockfd_cli, buf, sizeof(buf), 0);
                 if(ret < 0){
                     printk("recv error");
-                    return -1;
+                    return 1;
                 }
                 memcpy(file->private_data + len, buf, ret);
                 len += ret;
@@ -237,6 +238,7 @@ int slave_mmap(struct file *filp, struct vm_area_struct *vma){
     }
     vma->vm_ops = &simple_remap_vm_ops;
     vma->vm_flags |= VM_RESERVED;
+    vma->vm_private_data = file->private_data;
     vma_open(vma);
     return 0;
 }

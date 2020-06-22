@@ -237,6 +237,7 @@ static int master_mmap(struct file *file, struct vm_area_struct *vma)
         return -EAGAIN;
     }
     vma->vm_ops = &simple_remap_vm_ops;
+    vma->vm_private_data = file->private_data;
     vma->vm_flags |= VM_RESERVED;
     vma_open(vma);
     return 0;
