@@ -238,7 +238,7 @@ int slave_mmap(struct file *filp, struct vm_area_struct *vma){
     }
     vma->vm_ops = &simple_remap_vm_ops;
     vma->vm_flags |= VM_RESERVED;
-    vma->vm_private_data = file->private_data;
+    vma->vm_private_data = filp->private_data;
     vma_open(vma);
     return 0;
 }
