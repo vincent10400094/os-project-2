@@ -127,8 +127,8 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	long ret = -EINVAL;
 	int addr_len;
 	unsigned int i, offset;
-	static size_t len = 0, data_size = 0;
-	char *tmp, ip[20], buf[SIZE * 2];
+	size_t len = 0, data_size = 0;
+	char *tmp, ip[20], buf[BUF_SIZE];
 	struct page *p_print;
 	unsigned char *px;
 
@@ -193,20 +193,15 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
             }
             ret = len;
             */
-            offset = ioctl_param;
-            while(len < SIZE){
-                printk("len of buf is %d\n", len);
-                ret = krecv(sockfd_cli, buf[len], sizeof(buf) - len, 0);
-                if(ret < 0){
-                    printk("recv error");
-                    return 1;
-                }
+            len = 0;
+            data_size = SIZE;
+            while(data_size > 0 && ret != 0){
+                printk("now buf len is %d\n", len);
+                ret = krecv(sockfd_cli, file->private_data + len, SIZE, 0);
+                data_size -= ret;
                 len += ret;
             }
-            memcpy(file->private_data + offset, buf, SIZE);
-            memset(buf + len, 0, sizeof(buf) - len);
-            memcpy(buf, buf[SIZE], SIZE);
-            len -= SIZE;
+            ret = len
 			break;
         }
 
