@@ -29,7 +29,7 @@
 #define master_IOCTL_MMAP 0x12345678
 #define master_IOCTL_EXIT 0x12345679
 #define BUF_SIZE 512
-#define SIZE 4096
+#define SIZE 40960
 
 typedef struct socket * ksocket_t;
 
@@ -54,7 +54,7 @@ static int master_mmap(struct file *file, struct vm_area_struct *vma);
 static ssize_t send_msg(struct file *file, const char __user *buf, size_t count, loff_t *data);//use when user is writing to this device
 void vma_open(struct vm_area_struct *vma){ return; }
 void vma_close(struct vm_area_struct *vma){ return; }
-static int vma_fault(struct vm_fault *vmf);
+// static int vma_fault(struct vm_fault *vmf);
 
 static ksocket_t sockfd_srv, sockfd_cli;//socket for master and socket for slave
 static struct sockaddr_in addr_srv;//address for master
@@ -67,7 +67,7 @@ static int addr_len;
 static struct vm_operations_struct simple_remap_vm_ops = {
     .open = vma_open,
     .close = vma_close,
-    .fault = vma_fault
+    //.fault = vma_fault
 };
 
 //file operations
@@ -243,11 +243,13 @@ static int master_mmap(struct file *file, struct vm_area_struct *vma)
     return 0;
 }
 
+/*
 static int vma_fault(struct vm_fault *vmf){
     vmf->page = virt_to_page(vmf->vma->vm_private_data);
     get_page(vmf->page);
     return 0;
 }
+*/
 
 module_init(master_init);
 module_exit(master_exit);

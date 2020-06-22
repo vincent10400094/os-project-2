@@ -32,7 +32,7 @@
 
 
 #define BUF_SIZE 512
-#define SIZE 4096
+#define SIZE 40960
 
 struct dentry  *file1;//debug file
 
@@ -57,7 +57,7 @@ ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
 
 void vma_open(struct vm_area_struct *vma){ return; }
 void vma_close(struct vm_area_struct *vma){ return; }
-static int vma_fault(struct vm_fault *vmf);
+//static int vma_fault(struct vm_fault *vmf);
 
 static mm_segment_t old_fs;
 static ksocket_t sockfd_cli;//socket to the master server
@@ -67,7 +67,7 @@ static struct sockaddr_in addr_srv; //address of the master server
 static const struct vm_operations_struct simple_remap_vm_ops = {
     .open = vma_open,
     .close = vma_close,
-    .fault = vma_fault
+    //.fault = vma_fault
 };
 
 //file operations
@@ -197,11 +197,11 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
             data_size = SIZE;
             while(data_size > 0 && ret != 0){
                 printk("now buf len is %d\n", len);
-                ret = krecv(sockfd_cli, file->private_data + len, SIZE, 0);
+                ret = krecv(sockfd_cli, file->private_data + len, SIZE - len, 0);
                 data_size -= ret;
                 len += ret;
             }
-            ret = len
+            ret = len;
 			break;
         }
 
@@ -253,12 +253,13 @@ int slave_mmap(struct file *filp, struct vm_area_struct *vma){
     vma_open(vma);
     return 0;
 }
-
+/*
 static int vma_fault(struct vm_fault *vmf){
     vmf->page = virt_to_page(vmf->vma->vm_private_data);
     get_page(vmf->page);
     return 0;
 }
+*/
 
 module_init(slave_init);
 module_exit(slave_exit);
