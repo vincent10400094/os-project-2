@@ -52,6 +52,7 @@ static long master_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 static ssize_t send_msg(struct file *file, const char __user *buf, size_t count, loff_t *data);//use when user is writing to this device
 void vma_open(struct vm_area_struct *vma){ return; }
 void vma_close(struct vm_area_struct *vma){ return; }
+static int master_mmap(struct file *file, struct vm_area_struct *vma);
 
 static ksocket_t sockfd_srv, sockfd_cli;//socket for master and socket for slave
 static struct sockaddr_in addr_srv;//address for master
@@ -228,7 +229,7 @@ static int master_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	unsigned long pfn_start = virt_to_phys(file->private_data) >> PAGE_SIZE;
 	unsigned long size = vma->vm_end - vma->vm_start;
-	if(remap_pfn_range(vma, vma->start, pfn_start, size, vma->vm_page_prot)){
+	if(remap_pfn_range(vma, vma->vm_start, pfn_start, size, vma->vm_page_prot)){
         printk("remap_pfn_range failed at [0x%lx  0x%lx]\n", vma->vm_start, vma->vm_end);
         return -EAGAIN;
     }
