@@ -33,14 +33,14 @@ int main (int argc, char* argv[])
         strcpy(file_name[i], argv[cnt++]);
     strcpy(method, argv[cnt++]);
 
-	if( (dev_fd = open("/dev/master_device", O_RDWR)) < 0)
-	{
-		perror("failed to open /dev/master_device\n");
-		return 1;
-	}
-
 	gettimeofday(&start ,NULL);
     for(i = 0; i < N; i++){
+
+        if( (dev_fd = open("/dev/master_device", O_RDWR)) < 0)
+        {
+            perror("failed to open /dev/master_device\n");
+            return 1;
+        }
 
         if(ioctl(dev_fd, 0x12345677) == -1) //0x12345677 : create socket and accept the connection from the slave
         {
@@ -96,12 +96,12 @@ int main (int argc, char* argv[])
             return 1;
         }
 	    close(file_fd);
+	    close(dev_fd);
     }
 
     gettimeofday(&end, NULL);
     trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
-	close(dev_fd);
 
 	return 0;
 }
