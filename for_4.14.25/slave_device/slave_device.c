@@ -176,7 +176,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:{
-            int time_to_recv = PAGE_SIZE / sizeof(buf);
+            int time_to_recv = SIZE / sizeof(buf);
             int now_time = 0;
             while(now_time < time_to_recv){
                 ret = krecv(sockfd_cli, buf, sizeof(buf), 0);
