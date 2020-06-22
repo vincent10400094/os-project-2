@@ -125,10 +125,10 @@ int slave_open(struct inode *inode, struct file *filp)
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
 	long ret = -EINVAL;
-	int addr_len ;
-	unsigned int i;
-	size_t len = 0, data_size = 0;
-	char *tmp, ip[20], buf[BUF_SIZE];
+	int addr_len;
+	unsigned int i, offset;
+	static size_t len = 0, data_size = 0;
+	char *tmp, ip[20], buf[SIZE * 2];
 	struct page *p_print;
 	unsigned char *px;
 
@@ -176,6 +176,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:{
+            /*
             int time_to_recv = SIZE / sizeof(buf);
             int now_time = 0;
             len = 0;
@@ -191,6 +192,21 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 now_time++;
             }
             ret = len;
+            */
+            offset = ioctl_param;
+            while(len < SIZE){
+                printk("len of buf is %d\n", len);
+                ret = krecv(sockfd_cli, buf[len], sizeof(buf) - len, 0);
+                if(ret < 0){
+                    printk("recv error");
+                    return 1;
+                }
+                len += ret;
+            }
+            memcpy(file->private_data + offset, buf, SIZE);
+            memset(buf + len, 0, sizeof(buf) - len);
+            memcpy(buf, buf[SIZE], SIZE);
+            len -= SIZE;
 			break;
         }
 
