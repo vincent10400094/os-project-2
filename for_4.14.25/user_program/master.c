@@ -70,9 +70,20 @@ int main (int argc, char* argv[])
                     write(dev_fd, buf, ret);//write to the the device
                 }while(ret > 0);
                 break;
-            case 'm': //mmap
-
+            case 'm':{ //mmap
+                int send_len;
+                char *input_mem;
+                char *output_mem;
+                while(offset < file_size){
+                    send_len = ((file_size - offset) > PAGE_SIZE)? PAGE_SIZE : (file_size - offset);
+                    input_mem = mmap(NULL, send_len, PROT_READ, MAP_SHARED, file_fd, offset);
+                    output_mem = mmap(NULL, send_len, PROT_WRITE, MAP_SHARED, dev_fd, offset);
+                    memcpy(output_mem, input_mem, send_len);
+                    send_len = ioctl(dev_fd, 0x12345678, offset);
+                    offset += send_len;
+                }
                 break;
+            }
         }
 
         if(ioctl(dev_fd, 0x12345679) == -1) // end sending data, close the connection
