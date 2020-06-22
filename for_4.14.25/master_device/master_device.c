@@ -50,6 +50,8 @@ int master_close(struct inode *inode, struct file *filp);
 int master_open(struct inode *inode, struct file *filp);
 static long master_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param);
 static ssize_t send_msg(struct file *file, const char __user *buf, size_t count, loff_t *data);//use when user is writing to this device
+void vma_open(struct vm_area_struct *vma){ return; }
+void vma_close(struct vm_area_struct *vma){ return; }
 
 static ksocket_t sockfd_srv, sockfd_cli;//socket for master and socket for slave
 static struct sockaddr_in addr_srv;//address for master
@@ -58,6 +60,12 @@ static mm_segment_t old_fs;
 static int addr_len;
 //static  struct mmap_info *mmap_msg; // pointer to the mapped data in this device
 
+//mmap
+static struct vm_operations_struct simple_remap_vm_ops = {
+    .open = vma_open,
+    .close = vma_close,
+};
+
 //file operations
 static struct file_operations master_fops = {
 	.owner = THIS_MODULE,
@@ -65,6 +73,7 @@ static struct file_operations master_fops = {
 	.open = master_open,
 	.write = send_msg,
 	.release = master_close
+	.mmap = master_mmap
 };
 
 //device info
@@ -137,11 +146,13 @@ static void __exit master_exit(void)
 
 int master_close(struct inode *inode, struct file *filp)
 {
+	kfree(filp->private_data);
 	return 0;
 }
 
 int master_open(struct inode *inode, struct file *filp)
 {
+	filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
 	return 0;
 }
 
@@ -174,6 +185,9 @@ static long master_ioctl(struct file *file, unsigned int ioctl_num, unsigned lon
 			ret = 0;
 			break;
 		case master_IOCTL_MMAP:
+			ret = ksend(sockfd_cli, file->private_data, ioctl_param, 0);
+			printk("send message via mmap\n");
+			printk("data: %s/n", file->private_data);
 			break;
 		case master_IOCTL_EXIT:
 			if(kclose(sockfd_cli) == -1)
@@ -208,6 +222,21 @@ static ssize_t send_msg(struct file *file, const char __user *buf, size_t count,
 
 	return count;
 
+}
+
+static int master_mmap(struct file *file, struct vm_area_struct *vma)
+{
+	unsigned long pfn_start = virt_to_phys(file->private_data) >> PAGE_SIZE;
+	unsigned long size = vma->vm_end - vma->vm_start;
+	if(remap_pfn_range(vma, vma->start, pfn_start, size, vma->vm_page_prot)){
+        printk("remap_pfn_range failed at [0x%lx  0x%lx]\n", vma->vm_start, vma->vm_end);
+        return -EAGAIN;
+    }
+    vma->vm_ops = &simple_remap_vm_ops;
+    vma->vm_flags |= VM_RESERVED;
+    vma->vm_private_data = file->private_data;
+    vma_open(vma);
+    return 0;
 }
 
 
