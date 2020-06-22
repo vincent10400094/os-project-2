@@ -43,7 +43,6 @@ int main (int argc, char* argv[])
             return 1;
         }
 
-
         if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
         {
             perror("ioctl create slave socket error\n");
