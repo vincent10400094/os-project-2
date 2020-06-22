@@ -33,16 +33,15 @@ int main (int argc, char* argv[])
     strcpy(method, argv[cnt++]);
     strcpy(ip, argv[cnt++]);
 
+    if( (dev_fd = open("/dev/slave_device", O_RDWR)) < 0)//should be O_RDWR for PROT_WRITE when mmap()
+    {
+        perror("failed to open /dev/slave_device\n");
+        return 1;
+    }
+
 	gettimeofday(&start ,NULL);
     for(i = 0; i < N; i++){
         file_size = 0;
-
-        if( (dev_fd = open("/dev/slave_device", O_RDWR)) < 0)//should be O_RDWR for PROT_WRITE when mmap()
-        {
-            perror("failed to open /dev/slave_device\n");
-            return 1;
-        }
-
 
         if(ioctl(dev_fd, 0x12345677, ip) == -1)	//0x12345677 : connect to master in the device
         {
@@ -99,11 +98,11 @@ int main (int argc, char* argv[])
             return 1;
         }
         close(file_fd);
-        close(dev_fd);
     }
     gettimeofday(&end, NULL);
     trans_time = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec)*0.0001;
     printf("Transmission time: %lf ms, File size: %d bytes\n", trans_time, file_size);
+    close(dev_fd);
     return 0;
 }
 

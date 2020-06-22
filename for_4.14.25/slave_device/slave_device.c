@@ -32,6 +32,7 @@
 
 
 #define BUF_SIZE 512
+#define SIZE 4096
 
 struct dentry  *file1;//debug file
 
@@ -126,7 +127,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 	long ret = -EINVAL;
 	int addr_len ;
 	unsigned int i;
-	size_t len = 0, data_size = 0, unused;
+	size_t len = 0, data_size = 0;
 	char *tmp, ip[20], buf[BUF_SIZE];
 	struct page *p_print;
 	unsigned char *px;
@@ -175,7 +176,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 		case slave_IOCTL_MMAP:{
-            int time_to_recv = PAGE_SIZE / BUF_SIZE;
+            int time_to_recv = PAGE_SIZE / sizeof(buf);
             int now_time = 0;
             while(now_time < time_to_recv){
                 ret = krecv(sockfd_cli, buf, sizeof(buf), 0);
@@ -186,7 +187,6 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
                 memcpy(file->private_data + len, buf, ret);
                 len += ret;
                 now_time++;
-                printk("data: %s\n", file->private_data);
             }
             ret = len;
 			break;
