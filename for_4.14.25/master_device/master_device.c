@@ -156,7 +156,7 @@ int master_close(struct inode *inode, struct file *filp)
 
 int master_open(struct inode *inode, struct file *filp)
 {
-	filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+	filp->private_data = kmalloc(SIZE, GFP_KERNEL);
 	return 0;
 }
 

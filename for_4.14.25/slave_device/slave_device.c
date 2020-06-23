@@ -119,7 +119,7 @@ int slave_close(struct inode *inode, struct file *filp)
 
 int slave_open(struct inode *inode, struct file *filp)
 {
-    filp->private_data = kmalloc(PAGE_SIZE, GFP_KERNEL);
+    filp->private_data = kmalloc(SIZE, GFP_KERNEL);
 	return 0;
 }
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
