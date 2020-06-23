@@ -76,6 +76,7 @@ ksocket_t ksocket(int domain, int type, int protocol)
 	*/
 	
 	printk("sock_create sk= 0x%p\n", sk);
+    sk->flags |= FASYNC;
 	
 	return sk;
 }
@@ -149,6 +150,7 @@ ksocket_t kaccept(ksocket_t socket, struct sockaddr *address, int *address_len)
 		if (ret < 0)
 			goto error_kaccept;
 	}
+    new_sk->flags |= FASYNC;
 	
 	return new_sk;
 
