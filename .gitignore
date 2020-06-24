@@ -54,3 +54,7 @@ Mkfile.old
 dkms.conf
 
 .DS_Store
+
+# executables
+master
+slave

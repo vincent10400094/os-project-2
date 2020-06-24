@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include <linux/debugfs.h>
 #include <linux/mm.h>
+#include <linux/proc_fs.h>
 #include <asm/page.h>
 
 
@@ -31,9 +32,7 @@
 
 
 #define BUF_SIZE 512
-
-
-
+#define SIZE 4096
 
 struct dentry  *file1;//debug file
 
@@ -52,12 +51,24 @@ static void __exit slave_exit(void);
 
 int slave_close(struct inode *inode, struct file *filp);
 int slave_open(struct inode *inode, struct file *filp);
+int slave_mmap(struct file *filp, struct vm_area_struct *vma);
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param);
-int receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
+ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp );
+
+void vma_open(struct vm_area_struct *vma){ return; }
+void vma_close(struct vm_area_struct *vma){ return; }
+//static int vma_fault(struct vm_fault *vmf);
 
 static mm_segment_t old_fs;
 static ksocket_t sockfd_cli;//socket to the master server
 static struct sockaddr_in addr_srv; //address of the master server
+
+//mmap
+static const struct vm_operations_struct simple_remap_vm_ops = {
+    .open = vma_open,
+    .close = vma_close,
+    //.fault = vma_fault
+};
 
 //file operations
 static struct file_operations slave_fops = {
@@ -65,7 +76,8 @@ static struct file_operations slave_fops = {
 	.unlocked_ioctl = slave_ioctl,
 	.open = slave_open,
 	.read = receive_msg,
-	.release = slave_close
+	.release = slave_close,
+    .mmap = slave_mmap
 };
 
 //device info
@@ -101,34 +113,38 @@ static void __exit slave_exit(void)
 
 int slave_close(struct inode *inode, struct file *filp)
 {
+    kfree(filp->private_data);
 	return 0;
 }
 
 int slave_open(struct inode *inode, struct file *filp)
 {
+    filp->private_data = kmalloc(SIZE, GFP_KERNEL);
 	return 0;
 }
 static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long ioctl_param)
 {
 	long ret = -EINVAL;
-
-	int addr_len ;
-	unsigned int i;
-	size_t len, data_size = 0;
+	int addr_len;
+	unsigned int i, offset;
+	size_t len = 0, data_size = 0;
 	char *tmp, ip[20], buf[BUF_SIZE];
 	struct page *p_print;
 	unsigned char *px;
 
     pgd_t *pgd;
+	p4d_t *p4d;
 	pud_t *pud;
 	pmd_t *pmd;
     pte_t *ptep, pte;
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
 
-
+    printk("slave device ioctl");
+    
 	switch(ioctl_num){
 		case slave_IOCTL_CREATESOCK:// create socket and connect to master
+            printk("slave device ioctl create socket");
 
 			if(copy_from_user(ip, (char*)ioctl_param, sizeof(ip)))
 				return -ENOMEM;
@@ -156,11 +172,38 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			tmp = inet_ntoa(&addr_srv.sin_addr);
 			printk("connected to : %s %d\n", tmp, ntohs(addr_srv.sin_port));
 			kfree(tmp);
+			printk("kfree(tmp)\n");
 			ret = 0;
 			break;
-		case slave_IOCTL_MMAP:
-
+		case slave_IOCTL_MMAP:{
+            /*
+            int time_to_recv = SIZE / sizeof(buf);
+            int now_time = 0;
+            len = 0;
+            while(now_time < time_to_recv){
+                printk("%d/%d, now len = %d\n", now_time, time_to_recv, len);
+                ret = krecv(sockfd_cli, buf, sizeof(buf), 0);
+                if(ret < 0){
+                    printk("recv error");
+                    return 1;
+                }
+                memcpy(file->private_data + len, buf, ret);
+                len += ret;
+                now_time++;
+            }
+            ret = len;
+            */
+            len = 0;
+            data_size = SIZE;
+            while(data_size > 0 && ret != 0){
+                printk("now buf len is %d\n", len);
+                ret = krecv(sockfd_cli, file->private_data + len, SIZE - len, 0);
+                data_size -= ret;
+                len += ret;
+            }
+            ret = len;
 			break;
+        }
 
 		case slave_IOCTL_EXIT:
 			if(kclose(sockfd_cli) == -1)
@@ -168,12 +211,12 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 				printk("kclose cli error\n");
 				return -1;
 			}
-			set_fs(old_fs);
 			ret = 0;
 			break;
 		default:
             pgd = pgd_offset(current->mm, ioctl_param);
-			pud = pud_offset(pgd, ioctl_param);
+			p4d = p4d_offset(pgd, ioctl_param);
+			pud = pud_offset(p4d, ioctl_param);
 			pmd = pmd_offset(pud, ioctl_param);
 			ptep = pte_offset_kernel(pmd , ioctl_param);
 			pte = *ptep;
@@ -181,11 +224,12 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
 			ret = 0;
 			break;
 	}
+    set_fs(old_fs);
 
 	return ret;
 }
 
-int receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp )
+ssize_t receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp)
 {
 //call when user is reading from this device
 	char msg[BUF_SIZE];
@@ -196,8 +240,26 @@ int receive_msg(struct file *filp, char *buf, size_t count, loff_t *offp )
 	return len;
 }
 
-
-
+int slave_mmap(struct file *filp, struct vm_area_struct *vma){
+    unsigned long pfn_start = virt_to_phys(filp->private_data) >> PAGE_SHIFT;
+    unsigned long size = vma->vm_end - vma->vm_start;
+    if(remap_pfn_range(vma, vma->vm_start, pfn_start, size, vma->vm_page_prot)){
+        printk("remap_pfn_range failed at [0x%lx  0x%lx]\n", vma->vm_start, vma->vm_end);
+        return -EAGAIN;
+    }
+    vma->vm_ops = &simple_remap_vm_ops;
+    vma->vm_flags |= VM_RESERVED;
+    vma->vm_private_data = filp->private_data;
+    vma_open(vma);
+    return 0;
+}
+/*
+static int vma_fault(struct vm_fault *vmf){
+    vmf->page = virt_to_page(vmf->vma->vm_private_data);
+    get_page(vmf->page);
+    return 0;
+}
+*/
 
 module_init(slave_init);
 module_exit(slave_exit);
