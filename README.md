@@ -13,6 +13,18 @@ kernel version: 4.15.0.106
 
 ## Usage
 
+### Test async
+
+```
+$ git checkout async
+```
+
+### Test sync
+
+```
+$ git checkout master
+```
+
 ### Compile
 
 ```
