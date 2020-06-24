@@ -89,7 +89,10 @@ int main (int argc, char* argv[])
                 break;
             }
         }
-
+        if(ioctl(dev_fd, 0) < 0){
+            perror("print page descriptor error\n");
+            return 1;
+        }
         if(ioctl(dev_fd, 0x12345679) == -1) // end sending data, close the connection
         {
             perror("ioclt server exits error\n");

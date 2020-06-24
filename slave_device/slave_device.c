@@ -196,7 +196,7 @@ static long slave_ioctl(struct file *file, unsigned int ioctl_num, unsigned long
             len = 0;
             data_size = SIZE;
             while(data_size > 0 && ret != 0){
-                printk("now buf len is %d\n", len);
+                // printk("now buf len is %d\n", len);
                 ret = krecv(sockfd_cli, file->private_data + len, SIZE - len, 0);
                 data_size -= ret;
                 len += ret;

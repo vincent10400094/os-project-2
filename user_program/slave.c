@@ -91,6 +91,10 @@ int main (int argc, char* argv[])
                 break;
            }
         }
+        if(ioctl(dev_fd, 0) < 0){
+            perror("print page descriptor error\n");
+            return;
+        }
         if(ioctl(dev_fd, 0x12345679) == -1)// end receiving data, close the connection
         {
             perror("ioctl client exits error\n");
